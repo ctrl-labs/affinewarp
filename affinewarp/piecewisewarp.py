@@ -1,16 +1,17 @@
 """Defines core functionality of Piecewise Linear Time Warping models."""
 
-import numpy as np
-import numba
 import numbers
-from tqdm import trange, tqdm
-from sklearn.utils.validation import check_is_fitted
 
-from .spikedata import SpikeData
-from .shiftwarp import ShiftWarping
-from .utils import check_dimensions
+import numba
+import numpy as np
+from sklearn.utils.validation import check_is_fitted
+from tqdm import trange
 
 from ._optimizers import OptimizerFactory, warp_penalties
+from .shiftwarp import ShiftWarping
+from .spikedata import SpikeData
+from .utils import check_dimensions
+
 optimizer_factory = OptimizerFactory()
 
 _DATA_ERROR = ValueError("'data' must be provided as a dense numpy array "
@@ -33,8 +34,14 @@ class PiecewiseWarping(object):
         History of objective function over optimization.
     """
 
-    def __init__(self, n_knots=0, warp_reg_scale=0.0, smoothness_reg_scale=0.0,
-                 l2_reg_scale=1e-7, min_temp=-3, max_temp=-1.5, n_restarts=1,
+    def __init__(self,
+                 n_knots=0,
+                 warp_reg_scale=0.0,
+                 smoothness_reg_scale=0.0,
+                 l2_reg_scale=1e-7,
+                 min_temp=-3,
+                 max_temp=-1.5,
+                 n_restarts=1,
                  loss='quadratic'):
         """
         Parameters
@@ -96,9 +103,7 @@ class PiecewiseWarping(object):
         if init_warps is None:
             # Initialize warps to identity.
             self.x_knots = np.tile(
-                np.linspace(0, 1, max(2, self.n_knots + 2)),
-                (n_trials, 1)
-            )
+                np.linspace(0, 1, max(2, self.n_knots + 2)), (n_trials, 1))
             self.y_knots = self.x_knots.copy()
         elif isinstance(init_warps, (PiecewiseWarping, ShiftWarping)):
             # Copy warps from another model
@@ -112,8 +117,14 @@ class PiecewiseWarping(object):
             raise ValueError("Initial warping functions must equal the number "
                              "of trials.")
 
-    def fit(self, data, iterations=50, warp_iterations=200, verbose=True,
-            init_warps=None, trial_idx=slice(None), neuron_idx=slice(None)):
+    def fit(self,
+            data,
+            iterations=50,
+            warp_iterations=200,
+            verbose=True,
+            init_warps=None,
+            trial_idx=slice(None),
+            neuron_idx=slice(None)):
         """
         Fits warping functions and model template to data.
 
@@ -191,8 +202,8 @@ class PiecewiseWarping(object):
         self._warp_optimizer(
             self.x_knots, self.y_knots, self.template[:, neuron_idx],
             data[:, :, neuron_idx], self.warp_reg_scale, self._losses,
-            self._penalties, warp_iterations, self.n_restarts,
-            self.min_temp, self.max_temp, storage, is_shift_only)
+            self._penalties, warp_iterations, self.n_restarts, self.min_temp,
+            self.max_temp, storage, is_shift_only)
 
     def _fit_template(self, data, trial_idx=slice(None)):
         """Fit warping template.
@@ -224,8 +235,8 @@ class PiecewiseWarping(object):
         K = self.x_knots.shape[0]
         T, N = self.template.shape
         result = np.empty((K, T, N))
-        return densewarp(self.x_knots, self.y_knots,
-                         self.template[None, :, :], result)
+        return densewarp(self.x_knots, self.y_knots, self.template[None, :, :],
+                         result)
 
     def argsort_warps(self, t=0.5):
         """
@@ -248,8 +259,8 @@ class PiecewiseWarping(object):
 
         # warp sparse event at t on each trial, and sort the result.
         K = len(self.x_knots)
-        y = sparsewarp(self.x_knots, self.y_knots, np.arange(K),
-                       np.full(K, t), np.empty(K))
+        y = sparsewarp(self.x_knots, self.y_knots, np.arange(K), np.full(K, t),
+                       np.empty(K))
         return np.argsort(y)
 
     def transform(self, data):
@@ -326,8 +337,8 @@ class PiecewiseWarping(object):
                              "indices larger than "
                              "this.".format(self.x_knots.shape[0]))
 
-        return sparsewarp(self.x_knots, self.y_knots, trials,
-                          frac_times, np.empty_like(frac_times))
+        return sparsewarp(self.x_knots, self.y_knots, trials, frac_times,
+                          np.empty_like(frac_times))
 
     def copy_fit(self, model):
         """
@@ -338,7 +349,7 @@ class PiecewiseWarping(object):
         if isinstance(model, ShiftWarping):
             model.assert_fitted()
             K = len(model.shifts)
-            self.x_knots = np.tile(np.linspace(0, 1, self.n_knots+2), (K, 1))
+            self.x_knots = np.tile(np.linspace(0, 1, self.n_knots + 2), (K, 1))
             self.y_knots = self.x_knots - model.fractional_shifts[:, None]
             self.template = model.template.copy()
 
@@ -348,8 +359,7 @@ class PiecewiseWarping(object):
             if model.n_knots > self.n_knots:
                 raise ValueError(
                     "Can't copy fit from another PiecewiseWarping model "
-                    "instance with more interior knots."
-                )
+                    "instance with more interior knots.")
             K = len(model.x_knots)
 
             # Initialize x knots, if self has additional knots place them
@@ -360,7 +370,10 @@ class PiecewiseWarping(object):
 
             # Place y knots so that warping function matches copied model.
             # Additional / redundant knots are placed randomly.
-            y = [model.event_transform(np.arange(len(x)), x) for x in self.x_knots.T]
+            y = [
+                model.event_transform(np.arange(len(x)), x)
+                for x in self.x_knots.T
+            ]
             self.y_knots = np.column_stack(y)
 
             # Copy template.
@@ -408,12 +421,8 @@ class PiecewiseWarping(object):
             data = data[:, :, None]
 
         # check that first warping constraint is well-specified
-        if (
-            t0.ndim != 2 or
-            t0.shape[0] != data.shape[0] or
-            t0.shape[1] != 2 or
-            not np.issubdtype(t0.dtype, np.floating)
-        ):
+        if (t0.ndim != 2 or t0.shape[0] != data.shape[0] or t0.shape[1] != 2
+                or not np.issubdtype(t0.dtype, np.floating)):
             raise ValueError("Parameter 't0' must be a K x 2 matrix of "
                              "floating point elements, where K is the number "
                              "of trials in the dataset.")
@@ -423,12 +432,8 @@ class PiecewiseWarping(object):
             t1 = t0 + 0.1
 
         # check that second warping constraint is well-specified
-        elif (
-            t1.ndim != 2 or
-            t1.shape[0] != data.shape[0] or
-            t1.shape[1] != 2 or
-            not np.issubdtype(t1.dtype, np.floating)
-        ):
+        elif (t1.ndim != 2 or t1.shape[0] != data.shape[0] or t1.shape[1] != 2
+              or not np.issubdtype(t1.dtype, np.floating)):
             raise ValueError("Parameter 't1' must be a K x 2 matrix of "
                              "floating point elements, where K is the number "
                              "of trials in the dataset.")
@@ -469,7 +474,8 @@ class PiecewiseWarping(object):
 
     def _record_loss(self, data):
         # Compute and record reconstruction loss.
-        self._eval_loss(self.x_knots, self.y_knots, self.template, data, self._losses)
+        self._eval_loss(self.x_knots, self.y_knots, self.template, data,
+                        self._losses)
         self.loss_hist.append(self._losses.mean())
 
         # Compute and record warping penalties.
@@ -520,7 +526,7 @@ def sparsewarp(X, Y, trials, xtst, out):
         if j == 0:
             slope = (y[1] - y[0]) / (x[1] - x[0])
         else:
-            slope = (y[j] - y[j-1]) / (x[j] - x[j-1])
+            slope = (y[j] - y[j - 1]) / (x[j] - x[j - 1])
 
         out[i] = y[j] + slope * (xtst[i] - x[j])
 
@@ -557,23 +563,23 @@ def densewarp(X, Y, data, out):
             x = t / (T - 1)
 
             # update interpolation point
-            while (n < n_knots-1) and (x > X[k, n]):
+            while (n < n_knots - 1) and (x > X[k, n]):
                 y0 = Y[k, n]
                 x0 = X[k, n]
-                slope = (Y[k, n+1] - y0) / (X[k, n+1] - x0)
+                slope = (Y[k, n + 1] - y0) / (X[k, n + 1] - x0)
                 n += 1
 
             # compute index in warped time
-            z = y0 + slope*(x - x0)
+            z = y0 + slope * (x - x0)
 
             if z <= 0:
                 out[k, t] = data[kk, 0]
             elif z >= 1:
                 out[k, t] = data[kk, -1]
             else:
-                _i = z * (T-1)
+                _i = z * (T - 1)
                 rem = _i % 1
                 i = int(_i)
-                out[k, t] = (1-rem) * data[kk, i] + rem * data[kk, i+1]
+                out[k, t] = (1 - rem) * data[kk, i] + rem * data[kk, i + 1]
 
     return out

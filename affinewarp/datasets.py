@@ -2,16 +2,25 @@
 Functions to generate synthetic data for testing functionality.
 """
 
-from .piecewisewarp import PiecewiseWarping
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
+from .piecewisewarp import PiecewiseWarping
 
-def piecewise_warped_data(
-        n_trials=120, n_timepoints=100, n_neurons=50, n_knots=1,
-        knot_mutation_scale=0.1, clip_y_knots=True, template_scale=3.0,
-        template_base=0.0, template_drop=0.5, template_smoothness=5.0,
-        noise_type="poisson", noise_scale=0.1, seed=None):
+
+def piecewise_warped_data(n_trials=120,
+                          n_timepoints=100,
+                          n_neurons=50,
+                          n_knots=1,
+                          knot_mutation_scale=0.1,
+                          clip_y_knots=True,
+                          template_scale=3.0,
+                          template_base=0.0,
+                          template_drop=0.5,
+                          template_smoothness=5.0,
+                          noise_type="poisson",
+                          noise_scale=0.1,
+                          seed=None):
     """Generates data from the PiecewiseWarping model.
 
     Parameters
@@ -75,8 +84,8 @@ def piecewise_warped_data(
         x_noise = rs.randn(n_trials, n_knots + 2) * knot_mutation_scale
         x = model.x_knots + x_noise
         x.sort(axis=1)
-        x = x - x[:, (0,)]
-        x = x / x[:, (-1,)]
+        x = x - x[:, (0, )]
+        x = x / x[:, (-1, )]
 
         y_noise = rs.randn(n_trials, n_knots + 2) * knot_mutation_scale
         y = model.y_knots + y_noise
@@ -109,8 +118,14 @@ def piecewise_warped_data(
     return data, model
 
 
-def jittered_data(t=None, feature=None, n_trial=61, jitter=1, gain=0,
-                  noise=0.05, seed=None, sort=False):
+def jittered_data(t=None,
+                  feature=None,
+                  n_trial=61,
+                  jitter=1,
+                  gain=0,
+                  noise=0.05,
+                  seed=None,
+                  sort=False):
     """Add temporal shifts / ofssets to a time series dataset.
 
     Parameters
@@ -154,20 +169,24 @@ def jittered_data(t=None, feature=None, n_trial=61, jitter=1, gain=0,
 
     # default feature
     if feature is None:
-        def feature(tau): return np.exp(-(t-tau)**2)
+
+        def feature(tau):
+            return np.exp(-(t - tau)**2)
 
     # noise matrix
     np.random.seed(seed)
-    noise = noise*np.random.randn(n_trial, len(t))
+    noise = noise * np.random.randn(n_trial, len(t))
 
     # generate jittered data
-    gains = 1.0 + gain*np.random.randn(n_trial)
-    shifts = jitter*np.random.randn(n_trial)
+    gains = 1.0 + gain * np.random.randn(n_trial)
+    shifts = jitter * np.random.randn(n_trial)
     if sort:
         shifts.sort()
-    jittered_data = np.array([g*feature(s) for g, s in zip(gains, shifts)]) + noise
+    jittered_data = np.array([g * feature(s)
+                              for g, s in zip(gains, shifts)]) + noise
 
     # generate aligned data
-    aligned_data = np.array([g*feature(0) for g in gains]) + noise
+    aligned_data = np.array([g * feature(0) for g in gains]) + noise
 
-    return feature(0), np.atleast_3d(aligned_data), np.atleast_3d(jittered_data)
+    return feature(0), np.atleast_3d(aligned_data), np.atleast_3d(
+        jittered_data)

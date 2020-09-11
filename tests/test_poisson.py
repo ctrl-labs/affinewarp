@@ -2,10 +2,11 @@
 Tests for Poisson loss.
 """
 import pytest
-from affinewarp.datasets import piecewise_warped_data
-from affinewarp._optimizers import PoissonObjective
 from scipy.optimize import approx_fprime
 import numpy as np
+
+from affinewarp.datasets import piecewise_warped_data
+from affinewarp._optimizers import PoissonObjective
 
 TOL = 1e-5
 N_TRIALS = 3
@@ -33,8 +34,8 @@ X0 = [
 @pytest.mark.parametrize('l2_scale', [0.0, 1.0, 10.0])
 def test_gradients(x0, x_knots, y_knots, l2_smoothness_scale, l2_scale):
 
-    obj = PoissonObjective(DATA, l2_smoothness_scale, l2_scale,
-                           x_knots=x_knots, y_knots=y_knots)
+    obj = PoissonObjective(
+        DATA, l2_smoothness_scale, l2_scale, x_knots=x_knots, y_knots=y_knots)
 
     def f(x):
         return obj(x)[0]

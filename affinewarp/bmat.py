@@ -16,7 +16,9 @@ def nnls_solveh_banded(S, B, X0, niter=50):
 
     # Determine Lipshitz constant
     w = eig_banded(
-        S, lower=False, select='i',
+        S,
+        lower=False,
+        select='i',
         select_range=(nt - 1, nt - 1),
         eigvals_only=True)[0]
 

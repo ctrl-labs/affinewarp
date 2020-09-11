@@ -1,7 +1,7 @@
-import numba
 import numpy as np
-from .spikedata import SpikeData
 from scipy.interpolate import interp1d
+
+from .spikedata import SpikeData
 
 
 def check_dimensions(model, data):

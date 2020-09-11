@@ -1,16 +1,16 @@
 """Validation methods for time warping models."""
 
 import itertools
+
 import numpy as np
 import numpy.random as npr
-from tqdm import tqdm, trange
-from copy import deepcopy
-from .spikedata import SpikeData
-from .utils import upsample
+from tqdm import tqdm
+
 from .piecewisewarp import PiecewiseWarping
 from .shiftwarp import ShiftWarping
-from . import metrics
-from ._optimizers import nowarp_template
+from .spikedata import SpikeData
+from .utils import upsample
+
 EPS = np.finfo(float).eps
 
 
@@ -31,7 +31,7 @@ def _sample_log_uniform(rng, size):
     """
     Samples from a log-uniform distribution.
     """
-    return 10 ** np.random.uniform(*np.log10(rng), size=size)
+    return 10**np.random.uniform(*np.log10(rng), size=size)
 
 
 def _crossval_loss(pred, targ, kk, nn):
@@ -43,11 +43,18 @@ def _crossval_loss(pred, targ, kk, nn):
     return np.dot(resid.ravel(), resid.ravel())
 
 
-def paramsearch(
-        binned, samples_per_knot, n_valid_samples, n_train_folds=3,
-        n_valid_folds=1, n_test_folds=1, knot_range=(-1, 2),
-        smoothness_range=(1e-2, 1e2), warpreg_range=(1e-2, 1e1),
-        iter_range=(50, 300), warp_iter_range=(50, 300), outfile=None):
+def paramsearch(binned,
+                samples_per_knot,
+                n_valid_samples,
+                n_train_folds=3,
+                n_valid_folds=1,
+                n_test_folds=1,
+                knot_range=(-1, 2),
+                smoothness_range=(1e-2, 1e2),
+                warpreg_range=(1e-2, 1e1),
+                iter_range=(50, 300),
+                warp_iter_range=(50, 300),
+                outfile=None):
     """
     Performs nested cross-validation over shift-only, linear, and
     piecewise linear warping models, in order to tune all hyperparmeters
@@ -173,8 +180,7 @@ def paramsearch(
     train_rsq = np.empty((n_samples, n_valid_samples))
     valid_rsq = np.full((n_samples, n_valid_samples), -np.inf)
     test_rsq = np.empty(n_samples)
-    loss_hists = np.full(
-        (n_samples, n_valid_samples, iter_range[1]), np.nan)
+    loss_hists = np.full((n_samples, n_valid_samples, iter_range[1]), np.nan)
 
     progress_bar = tqdm(total=n_samples * n_valid_samples)
 
@@ -213,41 +219,37 @@ def paramsearch(
         # Create baseline model.
         baseline_pred = np.tile(
             np.mean(binned, axis=(0, 1), keepdims=True),
-            (binned.shape[0], binned.shape[1], 1)
-        )
+            (binned.shape[0], binned.shape[1], 1))
 
         # Record loss on training set.
         pred = model.predict()
         train_rsq[i, j] = 1 - (
             _crossval_loss(pred, binned, train_trials, train_units) /
-            _crossval_loss(baseline_pred, binned, train_trials, train_units)
-        )
+            _crossval_loss(baseline_pred, binned, train_trials, train_units))
 
         # Record loss on validation set.
         valid_rsq[i, j] = 1 - (
             _crossval_loss(pred, binned, val_trials, val_units) /
-            _crossval_loss(baseline_pred, binned, val_trials, val_units)
-        )
+            _crossval_loss(baseline_pred, binned, val_trials, val_units))
 
         # Save loss on test set if validation loss is optimal
         if np.argmax(valid_rsq[i]) == j:
             test_rsq[i] = 1 - (
                 _crossval_loss(pred, binned, test_trials, test_units) /
-                _crossval_loss(baseline_pred, binned, test_trials, test_units)
-            )
+                _crossval_loss(baseline_pred, binned, test_trials, test_units))
 
         # Save results.
         if j == n_valid_samples - 1:
             results = {
-                "knots": knots[:(i+1)],
-                "smoothness": smoothness[:(i+1)],
-                "warp_reg": warp_reg[:(i+1)],
-                "iterations": iterations[:(i+1)],
-                "warp_iterations": warp_iterations[:(i+1)],
-                "train_rsq": train_rsq[:(i+1)],
-                "valid_rsq": valid_rsq[:(i+1)],
-                "test_rsq": test_rsq[:(i+1)],
-                "loss_hists": loss_hists[:(i+1)],
+                "knots": knots[:(i + 1)],
+                "smoothness": smoothness[:(i + 1)],
+                "warp_reg": warp_reg[:(i + 1)],
+                "iterations": iterations[:(i + 1)],
+                "warp_iterations": warp_iterations[:(i + 1)],
+                "train_rsq": train_rsq[:(i + 1)],
+                "valid_rsq": valid_rsq[:(i + 1)],
+                "test_rsq": test_rsq[:(i + 1)],
+                "loss_hists": loss_hists[:(i + 1)],
             }
             if outfile is not None:
                 np.savez(outfile, **results)
@@ -258,8 +260,12 @@ def paramsearch(
     return results
 
 
-def heldout_transform(model, binned, data, transformed_neurons=None,
-                      progress_bar=True, **fit_kw):
+def heldout_transform(model,
+                      binned,
+                      data,
+                      transformed_neurons=None,
+                      progress_bar=True,
+                      **fit_kw):
     """
     Transform each neuron's activity by holding it out of model fitting
     and applying warping functions fit to the remaining neurons.
@@ -369,7 +375,8 @@ def null_dataset(data, nbins, upsample_factor=10):
     null_data = SpikeData([], [], [], data.tmin, data.tmax)
     for k in range(data.n_trials):
         t, neurons = np.where(np.random.poisson(up_psth))
-        spiketimes = (t / up_psth.shape[0]) * (data.tmax - data.tmin) + data.tmin
+        spiketimes = (t / up_psth.shape[0]) * (
+            data.tmax - data.tmin) + data.tmin
         null_data.add_trial(spiketimes, neurons)
 
     return null_data

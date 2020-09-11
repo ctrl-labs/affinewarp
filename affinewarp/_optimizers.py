@@ -8,6 +8,7 @@ class OptimizerFactory:
     """
     Caches optimizers (fit_template, fit_warps) for different losses.
     """
+
     def __init__(self):
         self.cache = {}
 
@@ -49,7 +50,8 @@ def _construct_template_optimizer(loss):
         # ------------------------------------------------- #
         # --- Template Update Rule Under Quadratic Loss --- #
         # ------------------------------------------------- #
-        def f(x_knots, y_knots, template, data, smoothness_reg_scale, l2_reg_scale):
+        def f(x_knots, y_knots, template, data, smoothness_reg_scale,
+              l2_reg_scale):
             K = data.shape[0]
             T = data.shape[1]
 
@@ -67,19 +69,27 @@ def _construct_template_optimizer(loss):
         # ----------------------------------------------- #
         # --- Template Update Rule Under Poisson Loss --- #
         # ----------------------------------------------- #
-        def f(x_knots, y_knots, template, data, smoothness_reg_scale, l2_reg_scale):
+        def f(x_knots, y_knots, template, data, smoothness_reg_scale,
+              l2_reg_scale):
 
             # Initialize template. Otherwise, warm-start from last result.
             if template is None:
                 template = np.zeros(data.shape[1:])
 
             # Create objective.
-            obj = PoissonObjective(data, smoothness_reg_scale, l2_reg_scale,
-                                   x_knots=x_knots, y_knots=y_knots)
+            obj = PoissonObjective(
+                data,
+                smoothness_reg_scale,
+                l2_reg_scale,
+                x_knots=x_knots,
+                y_knots=y_knots)
 
-            opt = scipy.optimize.minimize(obj, template.ravel(),
-                                          jac=True, method='L-BFGS-B',
-                                          options=dict(maxiter=20))
+            opt = scipy.optimize.minimize(
+                obj,
+                template.ravel(),
+                jac=True,
+                method='L-BFGS-B',
+                options=dict(maxiter=20))
 
             # # Fit using Newton's method
             # opt = scipy.optimize.minimize(obj, template.ravel(),
@@ -130,10 +140,10 @@ def _construct_warp_optimizer(loss):
             x = t / (len(data) - 1)
 
             # update interpolation point
-            while (n < len(X)-1) and (x > X[n]):
+            while (n < len(X) - 1) and (x > X[n]):
                 y0 = Y[n]
                 x0 = X[n]
-                slope = (Y[n+1] - y0) / (X[n+1] - x0)
+                slope = (Y[n + 1] - y0) / (X[n + 1] - x0)
                 n += 1
 
             # compute index in warped time
@@ -150,7 +160,8 @@ def _construct_warp_optimizer(loss):
             else:
                 j = z * (len(data) - 1)
                 rem = j % 1
-                loss += _interp_loss(rem, template[int(j)], template[int(j)+1], data[t])
+                loss += _interp_loss(rem, template[int(j)],
+                                     template[int(j) + 1], data[t])
 
         return loss
 
@@ -159,9 +170,9 @@ def _construct_warp_optimizer(loss):
     # ------------------------------------------------------ #
     @numba.jit(nopython=True)
     def fit_one_warp(x_knots, y_knots, template, data, warp_reg_scale,
-                     iterations, n_restarts, min_temp, max_temp,
-                     initial_loss, initial_penalty,
-                     curr_x, curr_y, next_x, next_y, is_shift_only):
+                     iterations, n_restarts, min_temp, max_temp, initial_loss,
+                     initial_penalty, curr_x, curr_y, next_x, next_y,
+                     is_shift_only):
 
         # Problem dimensions.
         n_knots = len(x_knots)
@@ -197,7 +208,7 @@ def _construct_warp_optimizer(loss):
 
             # Random search with exponentially decaying temperature.
             for logtemp in np.linspace(max_temp, min_temp, iterations):
-                temperature = 10 ** logtemp
+                temperature = 10**logtemp
 
                 # Perturb x_knots and y_knots
                 for i in range(n_knots):
@@ -250,21 +261,28 @@ def _construct_warp_optimizer(loss):
     # --- Create function to fit warps in parallel across all trials --- #
     # ------------------------------------------------------------------ #
     @numba.jit(nopython=True, parallel=True)
-    def fit_all_warps(x_knots, y_knots, template, data, warp_reg_scale,
-                      losses, penalties, iterations, n_restarts,
-                      min_temp, max_temp, storage, is_shift_only):
+    def fit_all_warps(x_knots, y_knots, template, data, warp_reg_scale, losses,
+                      penalties, iterations, n_restarts, min_temp, max_temp,
+                      storage, is_shift_only):
 
         for k in numba.prange(x_knots.shape[0]):
             new_loss, new_pen = fit_one_warp(
-                x_knots[k], y_knots[k],  # initial guess
-                template, data[k],  # warping template and target
-                warp_reg_scale, iterations,  # params for random search
-                n_restarts, min_temp, max_temp,  # more params
-                losses[k], penalties[k],
-                storage[k, 0], storage[k, 1],
-                storage[k, 2], storage[k, 3],
-                is_shift_only
-            )
+                x_knots[k],
+                y_knots[k],  # initial guess
+                template,
+                data[k],  # warping template and target
+                warp_reg_scale,
+                iterations,  # params for random search
+                n_restarts,
+                min_temp,
+                max_temp,  # more params
+                losses[k],
+                penalties[k],
+                storage[k, 0],
+                storage[k, 1],
+                storage[k, 2],
+                storage[k, 3],
+                is_shift_only)
             losses[k] = new_loss
             penalties[k] = new_pen
 
@@ -275,8 +293,8 @@ def _construct_warp_optimizer(loss):
     def full_loss(x_knots, y_knots, template, data, storage):
         K, T, N = data.shape
         for k in numba.prange(K):
-            storage[k] = reconstruction_loss(
-                x_knots[k], y_knots[k], template, data[k]) / (T * N)
+            storage[k] = reconstruction_loss(x_knots[k], y_knots[k], template,
+                                             data[k]) / (T * N)
 
     return fit_all_warps, full_loss
 
@@ -294,7 +312,7 @@ def _interp_quad_loss(a, y1, y2, targ):
     result = 0.0
     b = 1 - a
     for i in range(y1.size):
-        result += (b*y1[i] + a*y2[i] - targ[i])**2
+        result += (b * y1[i] + a * y2[i] - targ[i])**2
     return result
 
 
@@ -386,10 +404,10 @@ def warp_to_sparse_matrix(X, Y, rows, cols, vals):
         x = t / (T - 1)
 
         # update interpolation point
-        while (n < len(X)-1) and (x > X[n]):
+        while (n < len(X) - 1) and (x > X[n]):
             y0 = Y[n]
             x0 = X[n]
-            slope = (Y[n+1] - y0) / (X[n+1] - x0)
+            slope = (Y[n + 1] - y0) / (X[n + 1] - x0)
             n += 1
 
         # compute index in warped time
@@ -424,9 +442,13 @@ def warp_to_sparse_matrix(X, Y, rows, cols, vals):
 
 
 class PoissonObjective:
-
-    def __init__(self, data, smoothness_scale, l2_scale,
-                 x_knots=None, y_knots=None, shifts=None):
+    def __init__(self,
+                 data,
+                 smoothness_scale,
+                 l2_scale,
+                 x_knots=None,
+                 y_knots=None,
+                 shifts=None):
         # Store dataset
         self.data = data.astype(np.float64)
 
@@ -443,8 +465,7 @@ class PoissonObjective:
             for s in shifts:
                 cols = np.clip(rows + s, 0, T - 1)
                 Wk = scipy.sparse.csr_matrix(
-                    (vals.ravel(), (rows.ravel(), cols.ravel())), shape=(T, T)
-                )
+                    (vals.ravel(), (rows.ravel(), cols.ravel())), shape=(T, T))
                 self.W.append(Wk)
 
         else:
@@ -455,8 +476,7 @@ class PoissonObjective:
                 vals = np.empty((T, 2))
                 warp_to_sparse_matrix(x, y, rows, cols, vals)
                 Wk = scipy.sparse.csr_matrix(
-                    (vals.ravel(), (rows.ravel(), cols.ravel())), shape=(T, T)
-                )
+                    (vals.ravel(), (rows.ravel(), cols.ravel())), shape=(T, T))
                 self.W.append(Wk)
 
         # Allocate n_timesteps x n_units matrix holding gradient and a storage
@@ -465,8 +485,8 @@ class PoissonObjective:
         self.hess_out = np.empty_like(self.grad)
 
         # Create sparse matrices for smoothing operations.
-        diags = [np.ones(T-2), np.full(T-2, -2), np.ones(T-2)]
-        D = scipy.sparse.diags(diags, [0, 1, 2], shape=(T-2, T))
+        diags = [np.ones(T - 2), np.full(T - 2, -2), np.ones(T - 2)]
+        D = scipy.sparse.diags(diags, [0, 1, 2], shape=(T - 2, T))
         self.DtD = scipy.sparse.dia_matrix(D.T.dot(D))
         self.D = D
 
@@ -503,7 +523,7 @@ class PoissonObjective:
         self.grad += self.smoothness_scale * DtD_expX * exp_X
 
         # Add L2 penalty
-        exp_X2 = exp_X ** 2
+        exp_X2 = exp_X**2
         obj += .5 * self.l2_scale * exp_X2.sum()
         self.grad += self.l2_scale * exp_X2
 
@@ -593,14 +613,14 @@ def _fast_template_grams(WtW, WtX, data, X, Y):
             x = t / (T - 1)
 
             # update interpolation point
-            while (n < n_knots-1) and (x > X[k, n]):
+            while (n < n_knots - 1) and (x > X[k, n]):
                 y0 = Y[k, n]
                 x0 = X[k, n]
-                slope = (Y[k, n+1] - y0) / (X[k, n+1] - x0)
+                slope = (Y[k, n + 1] - y0) / (X[k, n + 1] - x0)
                 n += 1
 
             # compute index in warped time
-            z = y0 + slope*(x - x0)
+            z = y0 + slope * (x - x0)
 
             if z >= 1:
                 WtX[-1] += data[k, t]
@@ -611,11 +631,11 @@ def _fast_template_grams(WtW, WtX, data, X, Y):
                 WtW[1, 0] += 1.0
 
             else:
-                i = int(z * (T-1))
-                lam = (z * (T-1)) % 1
+                i = int(z * (T - 1))
+                lam = (z * (T - 1)) % 1
 
-                WtX[i] += (1-lam) * data[k, t]
-                WtW[1, i] += (1-lam)**2
-                WtW[1, i+1] += lam**2
-                WtW[0, i+1] += (1-lam) * lam
-                WtX[i+1] += lam * data[k, t]
+                WtX[i] += (1 - lam) * data[k, t]
+                WtW[1, i] += (1 - lam)**2
+                WtW[1, i + 1] += lam**2
+                WtW[0, i + 1] += (1 - lam) * lam
+                WtX[i + 1] += lam * data[k, t]

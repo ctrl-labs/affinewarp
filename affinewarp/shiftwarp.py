@@ -5,11 +5,10 @@ import scipy as sci
 from sklearn.utils.validation import check_is_fitted
 import scipy.optimize
 
+from .bmat import nnls_solveh_banded
 from .spikedata import SpikeData
 from .utils import check_dimensions
 from ._optimizers import _diff_gramian, PoissonObjective
-
-from .bmat import nnls_solveh_banded
 
 
 class ShiftWarping(object):
@@ -27,8 +26,13 @@ class ShiftWarping(object):
         History of objective function over optimization.
     """
 
-    def __init__(self, maxlag=.5, warp_reg_scale=0, smoothness_reg_scale=0,
-                 l2_reg_scale=1e-7, loss='quadratic', center_shifts=False,
+    def __init__(self,
+                 maxlag=.5,
+                 warp_reg_scale=0,
+                 smoothness_reg_scale=0,
+                 l2_reg_scale=1e-7,
+                 loss='quadratic',
+                 center_shifts=False,
                  nonneg=False):
         """Initializes ShiftWarping object with hyperparameters.
 
@@ -74,8 +78,13 @@ class ShiftWarping(object):
             raise ValueError(
                 "'loss' parameter should be one of ('quadratic', 'poisson').")
 
-    def fit(self, data, iterations=20, verbose=True, warp_iterations=None,
-            trial_idx=slice(None), neuron_idx=slice(None)):
+    def fit(self,
+            data,
+            iterations=20,
+            verbose=True,
+            warp_iterations=None,
+            trial_idx=slice(None),
+            neuron_idx=slice(None)):
         """
         Fit shift warping to data.
 
@@ -122,13 +131,12 @@ class ShiftWarping(object):
         # Initialize shifts and model template.
         self.shifts = np.zeros(K, dtype=int)
         self.template = None
-        self._fit_template(
-            data[trial_idx, :, :], self.shifts[trial_idx])
+        self._fit_template(data[trial_idx, :, :], self.shifts[trial_idx])
 
         # Initialize loss history
         if self.loss == "quadratic":
             resid = self.template[None, :, :] - data
-            self.loss_hist = [np.mean(resid ** 2)]
+            self.loss_hist = [np.mean(resid**2)]
         else:
             z1 = np.exp(self.template)[None, :, :]
             z2 = data * self.template[None, :, :]
@@ -141,14 +149,13 @@ class ShiftWarping(object):
         for i in pbar:
             # Update parameters and compute loss.
             self._fit_warps(data[:, :, neuron_idx])
-            self._fit_template(
-                data[trial_idx, :, :], self.shifts[trial_idx])
+            self._fit_template(data[trial_idx, :, :], self.shifts[trial_idx])
             self._record_loss(data)
 
             # update loss display
             if verbose:
-                pbar.set_description(
-                    'Loss: {0:.2f}'.format(self.loss_hist[-1]))
+                pbar.set_description('Loss: {0:.2f}'.format(
+                    self.loss_hist[-1]))
 
         # compute shifts as a fraction of trial length
         self.fractional_shifts = self.shifts / T
@@ -181,13 +188,15 @@ class ShiftWarping(object):
         assert len(shifts) == K
 
         if self.loss == 'quadratic':
-            DtD = _diff_gramian(T, self.smoothness_reg_scale * K, self.l2_reg_scale * K)
+            DtD = _diff_gramian(T, self.smoothness_reg_scale * K,
+                                self.l2_reg_scale * K)
             WtW = np.zeros((3, T))
             WtX = np.zeros((T, N))
             _fill_WtW(shifts, WtW[-1])
             _fill_WtX(data, shifts, WtX)
             if self.nonneg:
-                self.template = nnls_solveh_banded((WtW + DtD), WtX, self.template)
+                self.template = nnls_solveh_banded((WtW + DtD), WtX,
+                                                   self.template)
             else:
                 self.template = sci.linalg.solveh_banded((WtW + DtD), WtX)
 
@@ -199,14 +208,19 @@ class ShiftWarping(object):
                 x0 = np.zeros(T * N)
 
             # Set up optimization problem.
-            obj = PoissonObjective(data, self.smoothness_reg_scale,
-                                   self.l2_reg_scale, shifts=shifts)
+            obj = PoissonObjective(
+                data,
+                self.smoothness_reg_scale,
+                self.l2_reg_scale,
+                shifts=shifts)
 
             # Fit template.
-            opt = scipy.optimize.minimize(obj, x0,
-                                          jac=True,  # hessp=obj.hessp,
-                                          method='L-BFGS-B',  # 'newton-cg',
-                                          options=dict(maxiter=4))
+            opt = scipy.optimize.minimize(
+                obj,
+                x0,
+                jac=True,  # hessp=obj.hessp,
+                method='L-BFGS-B',  # 'newton-cg',
+                options=dict(maxiter=4))
             self.template = (opt.x).reshape(T, N)
 
     def _record_loss(self, data):
@@ -392,11 +406,11 @@ def _eval_quad_loss(data, template, shifts):
             if i < 0:
                 i = 0
             elif i >= T:
-                i = T-1
+                i = T - 1
 
             # add loss for each neuron
             for n in range(N):
-                total_loss += ((data[k, t, n] - template[i, n]) ** 2)
+                total_loss += ((data[k, t, n] - template[i, n])**2)
 
     return total_loss / data.size
 
@@ -415,11 +429,12 @@ def _eval_poiss_loss(data, template, shifts):
             if i < 0:
                 i = 0
             elif i >= T:
-                i = T-1
+                i = T - 1
 
             # add loss for each neuron
             for n in range(N):
-                total_loss += (exp_template[i, n] - template[i, n] * data[k, t, n])
+                total_loss += (
+                    exp_template[i, n] - template[i, n] * data[k, t, n])
 
     return total_loss / data.size
 
@@ -432,18 +447,18 @@ def _compute_shifted_quad_loss(data, template, losses):
 
     for k in numba.prange(K):
         for t in range(T):
-            for l in range(-L, L+1):
+            for l in range(-L, L + 1):
 
                 # shifted index
                 i = t - l
                 if i < 0:
                     i = 0
                 elif i >= T:
-                    i = T-1
+                    i = T - 1
 
                 # quadratic loss
                 for n in range(N):
-                    losses[k, l+L] += ((data[k, t, n] - template[i, n]) ** 2)
+                    losses[k, l + L] += ((data[k, t, n] - template[i, n])**2)
 
 
 @numba.jit(nopython=True, parallel=True)
@@ -456,15 +471,16 @@ def _compute_shifted_poiss_loss(data, template, losses):
 
     for k in numba.prange(K):
         for t in range(T):
-            for l in range(-L, L+1):
+            for l in range(-L, L + 1):
 
                 # shifted index
                 i = t - l
                 if i < 0:
                     i = 0
                 elif i >= T:
-                    i = T-1
+                    i = T - 1
 
                 # poisson loss
                 for n in range(N):
-                    losses[k, l+L] += (exp_template[i, n] - template[i, n] * data[k, t, n])
+                    losses[k, l + L] += (
+                        exp_template[i, n] - template[i, n] * data[k, t, n])

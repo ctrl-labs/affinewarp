@@ -4,15 +4,17 @@ Tests for loss calculations.
 
 import pytest
 import numpy as np
+
 from affinewarp.datasets import jittered_data
 from affinewarp import ShiftWarping, PiecewiseWarping
 
 
-@pytest.mark.parametrize('model', [
-    ShiftWarping(loss='quadratic'),
-    PiecewiseWarping(n_knots=0, loss='quadratic'),
-    PiecewiseWarping(n_knots=1, loss='quadratic'),
-])
+@pytest.mark.parametrize(
+    'model', [
+        ShiftWarping(loss='quadratic'),
+        PiecewiseWarping(n_knots=0, loss='quadratic'),
+        PiecewiseWarping(n_knots=1, loss='quadratic'),
+    ])
 @pytest.mark.parametrize('data', [
     jittered_data()[-1],
 ])
@@ -23,7 +25,7 @@ def test_quad_loss_init(model, data):
 
     # Compute expected loss.
     resids = model.template[None, :, :] - data
-    loss_per_trial = np.mean(resids ** 2, axis=(1, 2))
+    loss_per_trial = np.mean(resids**2, axis=(1, 2))
     expected_loss = np.mean(loss_per_trial)
 
     # Compute error

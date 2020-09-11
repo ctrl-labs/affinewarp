@@ -4,10 +4,10 @@ Tests to check that piecewise warps are transforming data as expected.
 
 import pytest
 import numpy as np
-from affinewarp._optimizers import warp_penalties
-from affinewarp import PiecewiseWarping, SpikeData
 from numpy.testing import assert_allclose, assert_array_equal
 
+from affinewarp._optimizers import warp_penalties
+from affinewarp import PiecewiseWarping, SpikeData
 
 # def test_monotonic_knots():
 #     """
@@ -54,7 +54,7 @@ def test_warp_penalties():
     # warp scaled by 2
     for n in range(2, 10):
         X = np.linspace(0, 1, n)
-        Y = np.linspace(0, 1, n)*2
+        Y = np.linspace(0, 1, n) * 2
 
         actual = warp_penalties(X[None, :], Y[None, :], np.empty(1))
         expected = np.array([0.5])

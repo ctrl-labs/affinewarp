@@ -2,11 +2,10 @@
 Tests that optimization is being performed correctly.
 """
 
-import pytest
 import numpy as np
-from affinewarp import PiecewiseWarping
-from scipy.ndimage import gaussian_filter1d
 from numpy.testing import assert_allclose
+
+from affinewarp import PiecewiseWarping
 
 
 def test_identity_warps_gauss_errors():

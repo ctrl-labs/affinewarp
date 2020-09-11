@@ -1,10 +1,8 @@
 """
 Specialized code for handling spike data.
 """
-import itertools
-import numpy as np
 import numba
-from scipy.stats import rankdata
+import numpy as np
 
 # TODO: rename "neuron" -> "unit"
 
@@ -37,9 +35,14 @@ class SpikeData(object):
         Same as spiketimes, but expressed as a fraction of time within trial.
     """
 
-    def __init__(
-            self, trials, spiketimes, neurons, tmin, tmax,
-            n_trials=None, n_neurons=None):
+    def __init__(self,
+                 trials,
+                 spiketimes,
+                 neurons,
+                 tmin,
+                 tmax,
+                 n_trials=None,
+                 n_neurons=None):
         """
         Parameters
         ----------
@@ -63,7 +66,8 @@ class SpikeData(object):
         self.tmax = tmax
 
         # All inputs must be 1-dimensional and equal length.
-        if not (self.trials.ndim == self.spiketimes.ndim == self.neurons.ndim == 1):
+        if not (self.trials.ndim == self.spiketimes.ndim == self.neurons.ndim
+                == 1):
             raise ValueError("Expected 'trials', 'spiketimes', and 'neurons' "
                              "to be 1-dimensional arrays. Given shapes were "
                              "{}, {}, {}".format(self.trials.shape,
@@ -78,7 +82,8 @@ class SpikeData(object):
 
         # Determine number of trials and neurons
         if self.trials.size > 0:
-            self.n_neurons = np.max(neurons) + 1 if n_neurons is None else n_neurons
+            self.n_neurons = np.max(
+                neurons) + 1 if n_neurons is None else n_neurons
             self.n_trials = np.max(trials) + 1 if n_trials is None else n_trials
             self.sort_spikes()
 
@@ -93,7 +98,8 @@ class SpikeData(object):
     @property
     def fractional_spiketimes(self):
         if self._frac_spiketimes is None:
-            self._frac_spiketimes = (self.spiketimes - self.tmin) / (self.tmax - self.tmin)
+            self._frac_spiketimes = (self.spiketimes - self.tmin) / (
+                self.tmax - self.tmin)
         return self._frac_spiketimes
 
     @property
@@ -150,7 +156,7 @@ class SpikeData(object):
         # and negative decimals round upwards. Thus, we keep bin_ids as floats
         # and handle the negative indices in _fast_bin.
         _eps = 1e-9
-        bin_ids = _eps + (self.fractional_spiketimes * (n_bins - 2*_eps))
+        bin_ids = _eps + (self.fractional_spiketimes * (n_bins - 2 * _eps))
 
         # Allocate space for result.
         shape = (self.n_trials, n_bins, self.n_neurons)
@@ -225,7 +231,8 @@ class SpikeData(object):
         Re-indexes all spikes according to trial permutation. Indexing
         semantics are the same as numpy.
         """
-        if not np.array_equal(np.sort(trial_indices), np.arange(self.n_trials)):
+        if not np.array_equal(
+                np.sort(trial_indices), np.arange(self.n_trials)):
             raise ValueError('Indices must be a permutation of trials. See '
                              'SpikeData.select_trials to select subsets of '
                              'trials.')
@@ -272,7 +279,7 @@ class SpikeData(object):
         Filter out trials by integer id.
         """
         if not np.iterable(kept_trials):
-            kept_trials = (kept_trials,)
+            kept_trials = (kept_trials, )
         kept_trials = np.asarray(kept_trials)
         if kept_trials.dtype == bool:
             kept_trials = np.where(kept_trials)[0]
@@ -289,7 +296,7 @@ class SpikeData(object):
         Filter out neurons by integer id.
         """
         if not np.iterable(kept_neurons):
-            kept_neurons = (kept_neurons,)
+            kept_neurons = (kept_neurons, )
         kept_neurons = np.asarray(kept_neurons)
         if kept_neurons.dtype == bool:
             kept_neurons = np.where(kept_neurons)[0]
@@ -434,8 +441,8 @@ def is_sorted(arr):
     """
     Returns True if arr is a sorted numpy array and False otherwise.
     """
-    for i in range(arr.size-1):
-        if arr[i+1] < arr[i]:
+    for i in range(arr.size - 1):
+        if arr[i + 1] < arr[i]:
             return False
     return True
 
@@ -447,7 +454,7 @@ def binary_search(arr, item):
     If 'arr' does not contain 'item', returns -1.
     """
     i = 0
-    j = arr.size-1
+    j = arr.size - 1
     while i <= j:
         mid = (i + j) // 2
         if arr[mid] == item:

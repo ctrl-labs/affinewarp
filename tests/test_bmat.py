@@ -1,6 +1,7 @@
 import numpy as np
-from affinewarp.bmat import sym_bmat_mul
 from numpy.testing import assert_allclose
+
+from affinewarp.bmat import sym_bmat_mul
 
 
 def test_sym_mul():

@@ -2,8 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def rasters(data, subplots=(5, 6), fig=None, axes=None, figsize=(9*1.5, 5*1.5),
-            max_spikes=7000, style='black', **scatter_kw):
+def rasters(data,
+            subplots=(5, 6),
+            fig=None,
+            axes=None,
+            figsize=(9 * 1.5, 5 * 1.5),
+            max_spikes=7000,
+            style='black',
+            **scatter_kw):
     """
     Plots a series of spike raster plots.
 
@@ -87,7 +93,10 @@ def rasters(data, subplots=(5, 6), fig=None, axes=None, figsize=(9*1.5, 5*1.5),
     return fig, axes
 
 
-def binned_heatmap(binned, subplots=(5, 6), figsize=(9*1.5, 5*1.5), **kwargs):
+def binned_heatmap(binned,
+                   subplots=(5, 6),
+                   figsize=(9 * 1.5, 5 * 1.5),
+                   **kwargs):
 
     kwargs.setdefault('aspect', 'auto')
 

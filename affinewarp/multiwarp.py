@@ -1,8 +1,9 @@
 """Experimental code on Multi-Warping."""
 
 import numpy as np
-from .shiftwarp import ShiftWarping
 from tqdm import trange
+
+from .shiftwarp import ShiftWarping
 
 
 class MultiShiftWarping:
@@ -52,10 +53,8 @@ class MultiShiftWarping:
         for i in pbar:
             for k, model in enumerate(self.models):
                 model.fit(
-                    data - self.predict(skip=[k]),
-                    iterations=2, verbose=False)
-            self.loss_hist.append(
-                np.mean((self.predict() - data)**2))
+                    data - self.predict(skip=[k]), iterations=2, verbose=False)
+            self.loss_hist.append(np.mean((self.predict() - data)**2))
 
     def predict(self, skip=[]):
         K = len(self.models[0].shifts)
@@ -100,7 +99,8 @@ class MultiShiftWarping:
         neurons = [[] for m in self.models]
 
         # Attribute each spike to one of the latent models.
-        for k, b, t, n in zip(data.trials, bin_ids, data.spiketimes, data.neurons):
+        for k, b, t, n in zip(data.trials, bin_ids, data.spiketimes,
+                              data.neurons):
             i = model_idx[k, b, n]
             trials[i].append(k)
             spiketimes[i].append(t)
@@ -155,8 +155,8 @@ def _mspline(x, centers, order, idx):
         vector specifying spline values at each x-location
     """
 
-    i0 = np.clip(idx, 0, len(centers)-1)
-    i1 = np.clip(idx + order, 0, len(centers)-1)
+    i0 = np.clip(idx, 0, len(centers) - 1)
+    i1 = np.clip(idx + order, 0, len(centers) - 1)
 
     if centers[i1] - centers[i0] == 0:
         return 0.0 * x

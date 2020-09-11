@@ -2,10 +2,10 @@
 Tests for SpikeData class.
 """
 
-import pytest
 import numpy as np
-from affinewarp.spikedata import SpikeData
 from numpy.testing import assert_array_equal
+
+from affinewarp.spikedata import SpikeData
 
 
 def test_bin_spikes():
@@ -28,10 +28,14 @@ def test_bin_spikes():
     # Test same dataset with two spikes in each bin.
     # create dataset with two spikes in each bin
     data2 = SpikeData(
-        trials+trials, spiketimes+spiketimes, neurons+neurons, tmin=0, tmax=4)
+        trials + trials,
+        spiketimes + spiketimes,
+        neurons + neurons,
+        tmin=0,
+        tmax=4)
     binned2 = data2.bin_spikes(n_bins=5)
     _trials, _times, _neurons = np.where(binned2)
-    assert binned2.sum() == 2*len(trials)
+    assert binned2.sum() == 2 * len(trials)
     assert_array_equal(trials, _trials)
     assert_array_equal(spiketimes, _times)
     assert_array_equal(neurons, _neurons)
@@ -50,7 +54,7 @@ def test_reorder_trials():
 
     # Construct SpikeData instance.
     trials, spiketimes, neurons = np.where(X)
-    data = SpikeData(trials, spiketimes, neurons, tmin=0, tmax=X.shape[1]-1)
+    data = SpikeData(trials, spiketimes, neurons, tmin=0, tmax=X.shape[1] - 1)
 
     # Bin spikes at resolution of X.
     binned = data.bin_spikes(X.shape[1])
@@ -78,7 +82,7 @@ def test_select_neurons():
 
     # Construct SpikeData instance.
     trials, spiketimes, neurons = np.where(X)
-    data = SpikeData(trials, spiketimes, neurons, tmin=0, tmax=nt-1)
+    data = SpikeData(trials, spiketimes, neurons, tmin=0, tmax=nt - 1)
 
     # Bin spikes at resolution of X.
     assert_array_equal(X, data.bin_spikes(nt))
@@ -86,7 +90,7 @@ def test_select_neurons():
     # Subselect neurons and test for equality with sub-selecting X.
     for n in range(X.shape[-1]):
         smalldata = data.select_neurons(n)
-        binned = X[:, :, (n,)]
+        binned = X[:, :, (n, )]
         if smalldata.n_neurons == 0:
             assert_array_equal(binned, np.zeros_like(binned))
         else:
